@@ -41,19 +41,14 @@ class HTTPClient(object):
         """
         components = urllib.parse.urlparse(url)
         port = 80
-        # if 'http' not in components.scheme or 'https' not in components.scheme:
-        #     components = urllib.parse.urlparse('http://'+url)
-        # path = components.path
-        # if path == '':
-        #     path = '/'
-        # print(components.path, components.hostname, components.port)
-        # if components.port:
-        #     port = components.port
-        # host = components.hostname
-        print(components)
-        host = ''
-        path = ''
-        port = 80
+        if 'http' not in components.scheme and 'https' not in components.scheme:
+            components = urllib.parse.urlparse('http://'+url)
+        path = components.path
+        if path == '':
+            path = '/'
+        if components.port:
+            port = components.port
+        host = components.hostname
         return (host, path, port)
 
     def connect(self, host, port):
