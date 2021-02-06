@@ -72,7 +72,7 @@ class HTTPClient(object):
         return data.split('\r\n\r\n')[0]
 
     def get_body(self, data):
-        return data.split('\r\n\r\n')[12]
+        return data[data.index('\r\n\r\n'):]
 
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
