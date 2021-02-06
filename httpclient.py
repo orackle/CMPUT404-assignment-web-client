@@ -40,16 +40,20 @@ class HTTPClient(object):
         cited: https://docs.python.org/3/library/urllib.parse.html
         """
         components = urllib.parse.urlparse(url)
-        path = "/"
         port = 80
-        if 'http' not in components.scheme:
-            components = urllib.parse.urlparse('http://'+url)
-
-        if components.path:
-            path = components.path
-        if components.port:
-            port = components.port
-        host = components.hostname
+        # if 'http' not in components.scheme or 'https' not in components.scheme:
+        #     components = urllib.parse.urlparse('http://'+url)
+        # path = components.path
+        # if path == '':
+        #     path = '/'
+        # print(components.path, components.hostname, components.port)
+        # if components.port:
+        #     port = components.port
+        # host = components.hostname
+        print(components)
+        host = ''
+        path = ''
+        port = 80
         return (host, path, port)
 
     def connect(self, host, port):
@@ -80,7 +84,6 @@ class HTTPClient(object):
     def close(self):
         self.socket.close()
 
-    # read everything from the socket
     def recvall(self, sock):
         buffer = bytearray()
         done = False
@@ -90,23 +93,39 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('utf-8')
+        return buffer.decode('utf-8', "ignore")
 
     def GET(self, url, args=None):
         host, path, port = self.get_host_port(url)
         self.connect(host, int(port))
-        data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\nConnection:close\r\n\r\n".format(path, host, port)
-        # data = "GET %s HTTP/1.1\r\nHost: %s:%s\r\nConnection: close\r\n\r\n" % (path, host, port)
+        data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\n\r\n".format(path, host, port)
         self.sendall(data)
         res = self.recvall(self.socket)
+        code = self.get_code(res)
+        body = self.get_body(res)
         self.close()
-        code = 500
-        body = ""
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
+        """
+        "Serializing dictionaries into query strings" from
+        http://www.compciv.org/guides/python/how-tos/creating-proper-url-query-strings/#what-is-a-url-query-string
+        """
+        print(url)
+        host, path, port = self.get_host_port(url)
+        print(host,path,port)
+        if args:
+            args = urllib.parse.urlencode(args)
+        print(args)
+        # self.connect(host, int(port))
+        # data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\n\r\n".format(path, host, port)
+        # self.sendall(data)
+        # res = self.recvall(self.socket)
+        # code = self.get_code(res)
+        # body = self.get_body(res)
+        # self.close()
+        code = 200
+        body = " "
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -122,6 +141,8 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
+        print(sys.argv[1])
+        print(sys.argv[2])
         print(client.command( sys.argv[2], sys.argv[1] ))
     else:
         print(client.command( sys.argv[1] ))
