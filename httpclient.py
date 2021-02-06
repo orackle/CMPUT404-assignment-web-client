@@ -94,21 +94,17 @@ class HTTPClient(object):
 
     def GET(self, url, args=None):
         host, path, port = self.get_host_port(url)
-        self.connect(host, port)
-        data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\n Connection:close\r\n".format(path, host, port)
+        self.connect(host, int(port))
+        data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\nConnection:close\r\n\r\n".format(path, host, port)
+        # data = "GET %s HTTP/1.1\r\nHost: %s:%s\r\nConnection: close\r\n\r\n" % (path, host, port)
         self.sendall(data)
-        httpResponse = self.recvall(self.socket)
-        code = self.get_code(httpResponse)
-        body = self.get_body(httpResponse)
+        res = self.recvall(self.socket)
         self.close()
+        code = 500
+        body = ""
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
-        """
-        "Serializing dictionaries into query strings" from
-        http://www.compciv.org/guides/python/how-tos/creating-proper-url-query-strings/#what-is-a-url-query-string
-
-        """
         code = 500
         body = ""
         return HTTPResponse(code, body)
@@ -118,8 +114,6 @@ class HTTPClient(object):
             return self.POST( url, args )
         else:
             return self.GET( url, args )
-
-
 
 if __name__ == "__main__":
     client = HTTPClient()
