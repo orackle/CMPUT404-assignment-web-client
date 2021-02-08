@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# Copyright 2016 Abram Hindle, https://github.com/tywtyw2002, and https://github.com/treedust
+# Copyright 2021 Abram Hindle, https://github.com/tywtyw2002, and https://github.com/treedust, Debangana Ghosh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,7 +71,11 @@ class HTTPClient(object):
         return data.split('\r\n\r\n')[0]
 
     def get_body(self, data):
-        return data[data.index('\r\n\r\n'):]
+        """
+        print everything after headers
+        remove the byte values at start and end
+        """
+        return data[data.index('\r\n\r\n') + len('\r\n\r\n'):]
 
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -105,22 +109,20 @@ class HTTPClient(object):
         """
         "Serializing dictionaries into query strings" from
         http://www.compciv.org/guides/python/how-tos/creating-proper-url-query-strings/#what-is-a-url-query-string
+
+        "Formatting post queries" from
+        https://www.w3schools.com/tags/ref_httpmethods.asp
         """
-        print(url)
         host, path, port = self.get_host_port(url)
-        print(host,path,port)
         if args:
             args = urllib.parse.urlencode(args)
-        print(args)
-        # self.connect(host, int(port))
-        # data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\n\r\n".format(path, host, port)
-        # self.sendall(data)
-        # res = self.recvall(self.socket)
-        # code = self.get_code(res)
-        # body = self.get_body(res)
-        # self.close()
-        code = 200
-        body = " "
+        self.connect(host, int(port))
+        data = "POST {} HTTP/1.1\r\nHost: {}:{}\r\n{}Connection: close\r\n\r\n".format(path, host, port, args)
+        self.sendall(data)
+        res = self.recvall(self.socket)
+        code = self.get_code(res)
+        body = self.get_body(res)
+        self.close()
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -136,8 +138,7 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print(sys.argv[1])
-        print(sys.argv[2])
-        print(client.command( sys.argv[2], sys.argv[1] ))
+        print(client.command(sys.argv[2], sys.argv[1]))
     else:
-        print(client.command( sys.argv[1] ))
+        # print(sys.argv[1], sys.argv[2])
+        print(client.command(sys.argv[1]))
