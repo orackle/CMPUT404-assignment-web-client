@@ -84,6 +84,10 @@ class HTTPClient(object):
         self.socket.close()
 
     def recvall(self, sock):
+        """
+        python decode error solution from
+        https://stackoverflow.com/questions/61820975/python-decode-utf-8-codec-cant-decode-byte-0xff-in-position-0-invalid-star
+        """
         buffer = bytearray()
         done = False
         while not done:
@@ -116,9 +120,12 @@ class HTTPClient(object):
         host, path, port = self.get_host_port(url)
         if args:
             args = urllib.parse.urlencode(args)
+        elif not args:
+            args = ''
         self.connect(host, int(port))
-        data = "POST {} HTTP/1.1\r\nHost: {}:{}\r\n{}Connection: close\r\n\r\n".format(path, host, port, args)
-        self.sendall(data)
+        full_query = "POST {} HTTP/1.1\r\nHost: {}:{}\r\nContent-Type: application/x-222-form-urlencoded\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}".format(path, host, port, len(args.encode('utf-8', 'ignore')), args)
+        # print(full_query)
+        self.sendall(full_query)
         res = self.recvall(self.socket)
         code = self.get_code(res)
         body = self.get_body(res)
