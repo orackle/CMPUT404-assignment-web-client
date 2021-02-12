@@ -28,9 +28,10 @@ def help():
     print("httpclient.py [GET/POST] [URL]\n")
 
 class HTTPResponse(object):
-    def __init__(self, code=200, body=""):
+    def __init__(self, code=200, headers = "", body=""):
         self.code = code
         self.body = body
+        self.headers = headers
 
 class HTTPClient(object):
     def get_host_port(self,url):
@@ -73,9 +74,8 @@ class HTTPClient(object):
     def get_body(self, data):
         """
         print everything after headers
-        remove the byte values at start and end
         """
-        return data[data.index('\r\n\r\n') + len('\r\n\r\n'):]
+        return data[data.index('\r\n\r\n'):]
 
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -84,10 +84,6 @@ class HTTPClient(object):
         self.socket.close()
 
     def recvall(self, sock):
-        """
-        python decode error solution from
-        https://stackoverflow.com/questions/61820975/python-decode-utf-8-codec-cant-decode-byte-0xff-in-position-0-invalid-star
-        """
         buffer = bytearray()
         done = False
         while not done:
@@ -96,18 +92,21 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('utf-8', "ignore")
+        return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
         host, path, port = self.get_host_port(url)
+
         self.connect(host, int(port))
-        data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\n\r\n".format(path, host, port)
+        data = "GET {} HTTP/1.1\r\nHost: {}:{}\r\nAccept-Charset: UTF-8\r\nConnection: close\r\n\r\n".format(path, host, port)
         self.sendall(data)
+
         res = self.recvall(self.socket)
         code = self.get_code(res)
         body = self.get_body(res)
+        headers = self.get_headers(res)
         self.close()
-        return HTTPResponse(code, body)
+        return HTTPResponse(code, headers, body)
 
     def POST(self, url, args=None):
         """
@@ -116,6 +115,9 @@ class HTTPClient(object):
 
         "Formatting post queries" from
         https://www.w3schools.com/tags/ref_httpmethods.asp
+
+        "How are parameters sent in a post request?" from https://stackoverflow.com/questions/14551194/how-are-parameters-sent-in-an-http-post-request
+        answer from https://stackoverflow.com/users/69083/guffa
         """
         host, path, port = self.get_host_port(url)
         if args:
@@ -123,20 +125,23 @@ class HTTPClient(object):
         elif not args:
             args = ''
         self.connect(host, int(port))
-        full_query = "POST {} HTTP/1.1\r\nHost: {}:{}\r\nContent-Type: application/x-222-form-urlencoded\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}".format(path, host, port, len(args.encode('utf-8', 'ignore')), args)
+        full_query = "POST {} HTTP/1.1\r\nHost: {}:{}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}".format(path, host, port, len(args.encode('utf-8')), args)
         # print(full_query)
         self.sendall(full_query)
         res = self.recvall(self.socket)
         code = self.get_code(res)
         body = self.get_body(res)
+        headers = self.get_headers(res)
         self.close()
-        return HTTPResponse(code, body)
+        return HTTPResponse(code, headers, body)
 
     def command(self, url, command="GET", args=None):
         if (command == "POST"):
-            return self.POST( url, args )
+            result = self.POST( url, args )
         else:
-            return self.GET( url, args )
+            result = self.GET( url, args )
+        print("Code: {}\n\r\nHeaders: \n{}\n\nBody: {}".format(result.code, result.headers, result.body))
+        return result
 
 if __name__ == "__main__":
     client = HTTPClient()
@@ -147,5 +152,4 @@ if __name__ == "__main__":
     elif (len(sys.argv) == 3):
         print(client.command(sys.argv[2], sys.argv[1]))
     else:
-        # print(sys.argv[1], sys.argv[2])
         print(client.command(sys.argv[1]))
